@@ -4,7 +4,7 @@ RUN \
     apt-get install -qy --no-install-recommends \
         #
         # Testing decisionlib (see etc/taskcluster/mock.py)
-        python3-coverage
+        python3-coverage \
         #
         # Multiple C/C++ dependencies built from source
         g++ \

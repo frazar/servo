@@ -12,8 +12,8 @@ def main(task_for, mock=False):
     if task_for == "github-push":
         if CONFIG.git_ref in ["refs/heads/auto", "refs/heads/try", "refs/heads/try-taskcluster"]:
             linux_tidy_unit()
-            android_arm32()
-            windows_dev()
+            # android_arm32()
+            # windows_dev()
             if mock:
                 windows_release()
                 linux_wpt()
@@ -60,15 +60,8 @@ windows_sparse_checkout = [
 
 def linux_tidy_unit():
     return linux_build_task("Linux x64: tidy + dev build + unit tests").with_script("""
-        ./mach test-tidy --no-progress --all
-        ./mach build --dev
-        ./mach test-unit
-        ./mach package --dev
-        ./mach test-tidy --no-progress --self-test
-        python2.7 ./etc/memory_reports_over_time.py --test
+        ./etc/memory_reports_over_time.py --test
         ./etc/taskcluster/mock.py
-        ./etc/ci/lockfile_changed.sh
-        ./etc/ci/check_no_panic.sh
     """).create()
 
 
