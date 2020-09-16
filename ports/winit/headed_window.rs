@@ -263,9 +263,22 @@ impl Window {
         let max_pixel_dist = 10.0 * self.servo_hidpi_factor().get();
         let event = match action {
             ElementState::Pressed => {
+
                 self.mouse_down_point.set(coords);
                 self.mouse_down_button.set(Some(button));
-                MouseWindowEvent::MouseDown(MouseButton::Left, coords.to_f32())
+
+
+                let button_servo_scripts = match button {
+                    winit::MouseButton::Left => MouseButton::Left,
+                    winit::MouseButton::Right => MouseButton::Right,
+                    winit::MouseButton::Middle => MouseButton::Middle,
+                    winit::MouseButton::Other(_) => {
+
+                        debug!("INFO: Converting click from {:?} into MouseButton::Left.", button);
+                        MouseButton::Left
+                    }
+                };
+                MouseWindowEvent::MouseDown(button_servo_scripts, coords.to_f32())
             },
             ElementState::Released => {
                 let mouse_up_event = MouseWindowEvent::MouseUp(MouseButton::Left, coords.to_f32());
