@@ -37,6 +37,12 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
         executor_kwargs["webdriver_binary"] = kwargs.get("webdriver_binary")
         executor_kwargs["webdriver_args"] = kwargs.get("webdriver_args")
 
+    # By default the executor may try to cleanup windows after a test (to best
+    # associate any problems with the test causing them). If the user might
+    # want to view the results, however, the executor has to skip that cleanup.
+    if kwargs["pause_after_test"] or kwargs["pause_on_unexpected"]:
+        executor_kwargs["cleanup_after_test"] = False
+
     return executor_kwargs
 
 
@@ -685,6 +691,9 @@ class ConnectionlessBaseProtocolPart(BaseProtocolPart):
     def set_window(self, handle):
         pass
 
+    def window_handles(self):
+        return []
+
 
 class ConnectionlessProtocol(Protocol):
     implements = [ConnectionlessBaseProtocolPart]
@@ -781,27 +790,54 @@ class CallbackHandler(object):
 
     def process_action(self, url, payload):
         action = payload["action"]
+        cmd_id = payload["id"]
         self.logger.debug("Got action: %s" % action)
         try:
             action_handler = self.actions[action]
         except KeyError:
             raise ValueError("Unknown action %s" % action)
         try:
-            result = action_handler(payload)
+            with ActionContext(self.logger, self.protocol, payload.get("context")):
+                result = action_handler(payload)
         except self.unimplemented_exc:
             self.logger.warning("Action %s not implemented" % action)
-            self._send_message("complete", "error", "Action %s not implemented" % action)
+            self._send_message(cmd_id, "complete", "error", "Action %s not implemented" % action)
         except Exception:
             self.logger.warning("Action %s failed" % action)
             self.logger.warning(traceback.format_exc())
-            self._send_message("complete", "error")
+            self._send_message(cmd_id, "complete", "error")
             raise
         else:
             self.logger.debug("Action %s completed with result %s" % (action, result))
             return_message = {"result": result}
-            self._send_message("complete", "success", json.dumps(return_message))
+            self._send_message(cmd_id, "complete", "success", json.dumps(return_message))
 
         return False, None
 
-    def _send_message(self, message_type, status, message=None):
-        self.protocol.testdriver.send_message(message_type, status, message=message)
+    def _send_message(self, cmd_id, message_type, status, message=None):
+        self.protocol.testdriver.send_message(cmd_id, message_type, status, message=message)
+
+
+class ActionContext(object):
+    def __init__(self, logger, protocol, context):
+        self.logger = logger
+        self.protocol = protocol
+        self.context = context
+        self.initial_window = None
+
+    def __enter__(self):
+        if self.context is None:
+            return
+
+        self.initial_window = self.protocol.base.current_window
+        self.logger.debug("Switching to window %s" % self.context)
+        self.protocol.testdriver.switch_to_window(self.context)
+
+    def __exit__(self, *args):
+        if self.context is None:
+            return
+
+        self.logger.debug("Switching back to initial window")
+        self.protocol.base.set_window(self.initial_window)
+        self.protocol.testdriver._switch_to_frame(None)
+        self.initial_window = None

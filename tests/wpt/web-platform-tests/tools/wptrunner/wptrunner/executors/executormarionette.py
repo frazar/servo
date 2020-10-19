@@ -103,6 +103,9 @@ class MarionetteBaseProtocolPart(BaseProtocolPart):
     def set_window(self, handle):
         _switch_to_window(self.marionette, handle)
 
+    def window_handles(self):
+        return self.marionette.window_handles
+
     def load(self, url):
         self.marionette.navigate(url)
 
@@ -429,9 +432,6 @@ class MarionetteSelectorProtocolPart(SelectorProtocolPart):
     def elements_by_selector(self, selector):
         return self.marionette.find_elements("css selector", selector)
 
-    def elements_by_selector_and_frame(self, element_selector, frame):
-        return self.marionette.find_elements("css selector", element_selector)
-
 
 class MarionetteClickProtocolPart(ClickProtocolPart):
     def setup(self):
@@ -463,14 +463,21 @@ class MarionetteTestDriverProtocolPart(TestDriverProtocolPart):
     def setup(self):
         self.marionette = self.parent.marionette
 
-    def send_message(self, message_type, status, message=None):
+    def send_message(self, cmd_id, message_type, status, message=None):
         obj = {
+            "cmd_id": cmd_id,
             "type": "testdriver-%s" % str(message_type),
             "status": str(status)
         }
         if message:
             obj["message"] = str(message)
         self.parent.base.execute_script("window.postMessage(%s, '*')" % json.dumps(obj))
+
+    def _switch_to_frame(self, frame_number):
+        self.marionette.switch_to_frame(frame_number)
+
+    def _switch_to_parent_frame(self):
+        self.marionette.switch_to_parent_frame()
 
 
 class MarionetteCoverageProtocolPart(CoverageProtocolPart):

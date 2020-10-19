@@ -3,7 +3,6 @@
 <head>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src="support/testcases.sub.js"></script>
 </head>
 
 <body>
@@ -11,48 +10,28 @@
     test(t => {
       let s = new Sanitizer();
       assert_true(s instanceof Sanitizer);
-      assert_object_equals(s.creationOptions, {});
     }, "SanitizerAPI creator without config.");
 
     test(t => {
       let s = new Sanitizer({});
       assert_true(s instanceof Sanitizer);
-      assert_object_equals(s.creationOptions, {});
     }, "SanitizerAPI creator with empty config.");
-
-    test(t => {
-      let s = new Sanitizer(null);
-      assert_true(s instanceof Sanitizer);
-      assert_object_equals(s.creationOptions, {});
-    }, "SanitizerAPI creator with null as config.");
-
-    test(t => {
-      let s = new Sanitizer(undefined);
-      assert_true(s instanceof Sanitizer);
-      assert_object_equals(s.creationOptions, {});
-    }, "SanitizerAPI creator with undefined as config.");
 
     test(t => {
       let s = new Sanitizer({testConfig: [1,2,3], attr: ["test", "i", "am"]});
       assert_true(s instanceof Sanitizer);
-      assert_object_equals(s.creationOptions, {});
     }, "SanitizerAPI creator with config ignore unknown values.");
 
-    test(t => {
+    const config_names = ["dropElements", "blockElements", "allowElements", "dropAttributes", "blockAttributes", "allowAttributes"];
+    config_names.forEach(cname => {
       let options = {};
-      let s = new Sanitizer(options);
-      assert_true(s instanceof Sanitizer);
-      assert_object_equals(s.creationOptions, {});
-
-      options.testConfig = [1,2,3];
-      assert_object_equals(s.creationOptions, {});
-
-      s.creationOptions = {testConfig: [1,2,3]};
-      assert_object_equals(s.creationOptions, {});
-
-      s.creationOptions['testConfig'] = [1,2,3];
-      assert_object_equals(s.creationOptions, {});
-    }, "SanitizerAPI config is not editable.");
+      options[cname] = [];
+      test(t => {
+        let s = new Sanitizer(options);
+        assert_true(s instanceof Sanitizer);
+        assert_equals(s.sanitizeToString("<div>balabala<i>test</i></div>"), "<div>balabala<i>test</i></div>");
+      }, "SanitizerAPI creator with config " + JSON.stringify(options) + ".");
+  });
 
 </script>
 </body>

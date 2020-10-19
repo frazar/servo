@@ -450,8 +450,17 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rellist
     fn RelList(&self) -> DomRoot<DOMTokenList> {
-        self.rel_list
-            .or_init(|| DOMTokenList::new(self.upcast(), &local_name!("rel")))
+        self.rel_list.or_init(|| {
+            DOMTokenList::new(
+                self.upcast(),
+                &local_name!("rel"),
+                Some(vec![
+                    Atom::from("noopener"),
+                    Atom::from("noreferrer"),
+                    Atom::from("opener"),
+                ]),
+            )
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names
@@ -1319,7 +1328,7 @@ pub struct FormDatum {
 
 impl FormDatum {
     pub fn replace_value(&self, charset: &str) -> String {
-        if self.name == "_charset_" && self.ty == "hidden" {
+        if self.name.to_ascii_lowercase() == "_charset_" && self.ty == "hidden" {
             return charset.to_string();
         }
 
@@ -1744,7 +1753,7 @@ pub fn encode_multipart_form_data(
     // Step 3
     for entry in form_data.iter_mut() {
         // 3.1
-        if entry.name == "_charset_" && entry.ty == "hidden" {
+        if entry.name.to_ascii_lowercase() == "_charset_" && entry.ty == "hidden" {
             entry.value = FormDatumValue::String(DOMString::from(charset.clone()));
         }
         // TODO: 3.2

@@ -8,9 +8,8 @@
 
 <body>
 <script>
-    const s = new Sanitizer({});
-
     testcases.forEach(c => test(t => {
+        let s = new Sanitizer(c.config_input);
         assert_equals(s.sanitizeToString(c.value), c.result);
     }, "SanitizerAPI sanitizeToString function for " + c.message));
 </script>
